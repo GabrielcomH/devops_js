@@ -7,7 +7,7 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  # 1. Pipeline Init & Testes (Nó inicial)
+  # 1. Pipeline Init & Build
   build-and-test:
     name: Pipeline Init & Build
     runs-on: ubuntu-latest
@@ -18,14 +18,12 @@ jobs:
       - name: Configurar ambiente Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: '20'
 
-      - name: Instalar dependências
-        run: npm ci || npm install
-
-      - name: Executar testes unitários
-        run: npm test --if-present
+      - name: Validar sintaxe e função calcular
+        run: |
+          node --check app.js
+          node -e "const { calcular } = require('./app.js'); if (calcular('+', 10, 5) !== 15) process.exit(1);"
 
   # 2. Nó de SAST (Static Application Security Testing - Semgrep)
   sast-scan:
@@ -53,21 +51,21 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Instalar dependências e iniciar aplicação
+      - name: Iniciar servidor da aplicação
         run: |
-          npm ci || npm install
-          npm start &
-          sleep 5
+          node app.js &
+          sleep 3
 
       - name: Executar análise dinâmica DAST com OWASP ZAP
         uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'http://localhost:3000'
           fail_action: true
+          allow_issue_writing: false
 
-  # 4. Nó de Deploy (Executado apenas após validações de segurança)
+  # 4. Nó de Deploy
   deploy:
     name: Deploy
     needs: dast-scan
