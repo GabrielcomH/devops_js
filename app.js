@@ -47,7 +47,7 @@ if (require.main === module) {
             'Cross-Origin-Opener-Policy': 'same-origin',
             'Cross-Origin-Embedder-Policy': 'require-corp',
             'Cross-Origin-Resource-Policy': 'same-origin',
-            'Cache-Control': 'no-store'
+            'Cache-Control': 'no-cache'
         });
 
         res.end(JSON.stringify({
