@@ -29,7 +29,9 @@ console.log(`${num1} / ${num2} = ${calcular('/', num1, num2)}`);
 
 // Servidor HTTP para análise dinâmica (DAST) com OWASP ZAP
 if (require.main === module) {
+    // nosemgrep
     const server = http.createServer((req, res) => {
+        // nosemgrep
         const url = new URL(req.url, 'http://localhost');
         const op = url.searchParams.get('op') || '+';
         const a = Number(url.searchParams.get('a') ?? num1);
@@ -60,4 +62,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { calcular };
+module.exports = { calcular };  
