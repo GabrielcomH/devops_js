@@ -1,24 +1,77 @@
-name: CI Pipeline Node.js
+name: DevSecOps CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ "main", "master" ]
 
 jobs:
-  build:
+  # 1. Pipeline Init & Testes (Nó inicial)
+  build-and-test:
+    name: Pipeline Init & Build
     runs-on: ubuntu-latest
-
     steps:
-    - name: Copiar código do repositório
-      uses: actions/checkout@v4
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
-    - name: Configurar ambiente Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - name: Configurar ambiente Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-    - name: Executar o programa
-      run: |
-        node app.js
+      - name: Instalar dependências
+        run: npm ci || npm install
+
+      - name: Executar testes unitários
+        run: npm test --if-present
+
+  # 2. Nó de SAST (Static Application Security Testing - Semgrep)
+  sast-scan:
+    name: SAST Scan (Semgrep)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Executar análise estática SAST com Semgrep
+        run: semgrep scan --config auto --error
+
+  # 3. Nó de DAST (Dynamic Application Security Testing - OWASP ZAP)
+  dast-scan:
+    name: DAST Scan (OWASP ZAP)
+    needs: sast-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Instalar dependências e iniciar aplicação
+        run: |
+          npm ci || npm install
+          npm start &
+          sleep 5
+
+      - name: Executar análise dinâmica DAST com OWASP ZAP
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'http://localhost:3000'
+          fail_action: true
+
+  # 4. Nó de Deploy (Executado apenas após validações de segurança)
+  deploy:
+    name: Deploy
+    needs: dast-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executar Deploy
+        run: echo "Deploy concluído com sucesso após aprovação nos testes SAST e DAST!"
