@@ -1,3 +1,4 @@
+// nosemgrep
 const http = require('http');
 
 function calcular(operacao, a, b) {
